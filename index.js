@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";
 
 const app = express();
 app.use(cors());
@@ -57,3 +56,4 @@ app.post("/voice", async (req, res) => {
 app.listen(3000, () => {
   console.log("Voice backend running on port 3000");
 });
+
