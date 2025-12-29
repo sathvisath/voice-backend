@@ -24,7 +24,7 @@ Your job is to understand voice commands and extract structured data for these o
 6. CALENDAR - check schedule, availability
 7. ACCOUNTING - view revenue, expenses, summaries
 
-When you receive a voice command, respond with a JSON object containing:
+When you receive a voice command, respond ONLY with a JSON object (no markdown, no code blocks) containing:
 {
   "action": "create_appointment" | "create_invoice" | "create_contract" | "add_expense" | "add_client" | "view_schedule" | "view_accounting" | "unknown",
   "data": { ...extracted fields... },
@@ -39,7 +39,7 @@ Response:
   "action": "create_appointment",
   "data": {
     "client_name": "John",
-    "date": "2025-12-29",
+    "date": "2025-12-30",
     "time": "14:00",
     "title": "Service Visit"
   },
@@ -76,7 +76,7 @@ Response:
 {
   "action": "view_schedule",
   "data": {
-    "date": "2025-12-28"
+    "date": "2025-12-29"
   },
   "spoken_response": "Let me check your schedule for today."
 }
@@ -93,6 +93,7 @@ Response:
 }
 
 IMPORTANT:
+- Respond ONLY with valid JSON - no markdown formatting, no code blocks
 - Always extract all relevant information
 - Use ISO date format (YYYY-MM-DD)
 - Use 24-hour time format (HH:MM)
@@ -111,6 +112,8 @@ app.post("/voice", async (req, res) => {
   }
 
   try {
+    console.log("📝 Received command:", text);
+
     // Ask Claude to understand the command
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -126,18 +129,46 @@ app.post("/voice", async (req, res) => {
 
     // Parse Claude's response
     const responseText = message.content[0].text;
+    console.log("🤖 Raw Claude response:", responseText);
+    
     let parsedResponse;
     
     try {
-      parsedResponse = JSON.parse(responseText);
+      // Clean up the response - remove markdown code blocks if present
+      let cleanedText = responseText.trim();
+      
+      // Remove ```json at start
+      if (cleanedText.startsWith('```json')) {
+        cleanedText = cleanedText.substring(7);
+      } else if (cleanedText.startsWith('```')) {
+        cleanedText = cleanedText.substring(3);
+      }
+      
+      // Remove ``` at end
+      if (cleanedText.endsWith('```')) {
+        cleanedText = cleanedText.substring(0, cleanedText.length - 3);
+      }
+      
+      cleanedText = cleanedText.trim();
+      
+      parsedResponse = JSON.parse(cleanedText);
+      console.log("✅ Parsed successfully:", parsedResponse);
+      
     } catch (e) {
-      console.error("Failed to parse Claude response:", responseText);
+      console.error("❌ Failed to parse Claude response:", responseText);
+      console.error("Parse error:", e.message);
+      
       return res.json({
-        spoken_response: "Sorry, I didn't understand that command.",
+        action: "unknown",
+        data: {},
+        spoken_response: "Sorry, I had trouble understanding that command.",
       });
     }
 
     const { action, data, spoken_response } = parsedResponse;
+
+    console.log("✅ Action:", action);
+    console.log("📦 Data:", data);
 
     res.json({
       action,
@@ -146,8 +177,10 @@ app.post("/voice", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error processing voice command:", error);
+    console.error("❌ Error processing voice command:", error);
     res.json({
+      action: "unknown",
+      data: {},
       spoken_response: "Sorry, I encountered an error processing your request.",
     });
   }
@@ -160,5 +193,5 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Voice backend running on port ${PORT}`);
+  console.log(`🎤 Voice backend running on port ${PORT}`);
 });
