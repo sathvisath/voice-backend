@@ -49,7 +49,13 @@ ENTITIES AND ALL THEIR FIELDS:
    4. Client email
    5. Client language preference (english/spanish)
    6. Client notes
-   THEN ask appointment fields
+   THEN ask appointment fields:
+   7. title (e.g., "Service Visit", "Consultation", "Repair")
+   8. date (format: YYYY-MM-DD)
+   9. time (format: HH:MM in 24-hour)
+   10. address (can use client address by default)
+   11. duration_minutes (default: 60)
+   12. notes (additional requirements)
 
 2. INCOME - Ask for these IN ORDER:
    1. amount (dollar amount)
@@ -77,63 +83,26 @@ ENTITIES AND ALL THEIR FIELDS:
    7. is_tax_deductible (yes/no, default yes)
 
 5. CONTRACT - Ask for these IN ORDER:
-   1. title (contract or proposal title)
-   2. client_name (who is this contract for)
-   3. services (services to be provided - detailed description)
-   4. contract_date (when contract was made, format: YYYY-MM-DD, default today)
-   5. hourly_rate (rate per hour if applicable, can be 0)
-   6. total_charges (total contract amount)
-   7. language (english/spanish - auto-detect from conversation)
-   8. status (draft/sent/completed, default: draft)
+   1. title (contract name)
+   2. client_name
+   3. services (services to be provided)
+   4. contract_date (format: YYYY-MM-DD)
+   5. hourly_rate (optional, rate per hour)
+   6. total_charges (total amount)
+   7. language (english/spanish)
 
-6. INVOICE - COMPLETE INVOICE WITH ALL FIELDS:
-   Ask for these IN ORDER:
-   
-   STEP 1 - CLIENT INFORMATION:
-   1. client_name (who is this invoice for)
-   2. client_email (email to send invoice)
-   3. client_address (billing address)
-   
-   STEP 2 - JOB/PROJECT REFERENCE (OPTIONAL):
-   4. job_title (reference to job/project, can skip)
-   5. job_date (when job was done, can skip)
-   6. job_address (where job was done, can skip)
-   7. job_notes (any job notes, can skip)
-   
-   STEP 3 - LINE ITEMS (MOST IMPORTANT):
-   8. line_items (array of items):
-      For EACH line item, ask:
-      - description (what service/product)
-      - quantity (how many)
-      - unit (hours/pieces/each/etc)
-      - unit_price (price per unit)
-      - amount will be auto-calculated (quantity × unit_price)
-   
-   Ask: "Tell me the first item. What's the description, quantity, unit, and price?"
-   After each item: "Any more items? Say 'no' or 'that's all' when done."
-   
-   STEP 4 - PRICING:
-   9. subtotal (auto-calculate: sum of all line_items amounts)
-   10. tax_rate (percentage, e.g., 8.5 for 8.5%, default 0)
-   11. tax_amount (auto-calculate: subtotal × tax_rate / 100)
-   12. total (auto-calculate: subtotal + tax_amount)
-   
-   STEP 5 - DATES AND TERMS:
-   13. issue_date (when invoice created, default: today)
-   14. due_date (when payment due, default: 30 days from today)
-   15. notes (payment terms, additional notes)
-   16. status (draft/sent/paid/overdue/cancelled, default: draft)
-   
-   STEP 6 - PAYMENT INFO (OPTIONAL):
-   17. payment_method (how they'll pay: cash/card/check/transfer/other - only if status is paid)
-   18. sent_date (when invoice was sent - only if status is sent/paid)
-   19. paid_date (when payment received - only if status is paid)
+6. INVOICE - Ask for these IN ORDER:
+   1. client_name
+   2. amount (total amount)
+   3. description (what the invoice is for)
+   4. due_date (when payment is due)
+   5. status (paid/unpaid/overdue)
 
 RESPONSE FORMAT - Always return valid JSON:
 {
-  "state": "selecting_language" | "collecting_data" | "confirming" | "reading_back" | "complete" | "reading_data" | "error",
+  "state": "selecting_language" | "collecting_data" | "confirming" | "complete" | "reading_data" | "error",
   "language": "english" | "spanish" | null,
-  "action": "create_appointment" | "create_invoice" | "create_contract" | "add_expense" | "add_income" | "add_client" | "view_schedule" | null,
+  "action": "create_appointment" | "create_invoice" | "create_contract" | "add_expense" | "add_income" | "add_client" | "view_schedule" | "view_data" | null,
   "data": { all collected data so far },
   "client_type": "new" | "existing" | null,
   "creating_client_first": true | false,
@@ -167,177 +136,130 @@ CONVERSATION RULES:
 6. When reading data, be specific and detailed
 7. ALL responses after language selection must be in the chosen language
 
-EXAMPLE FLOW - Creating Complete Invoice:
+EXAMPLE FLOW - Creating Appointment:
 
-User: "Create an invoice for John"
+User: "Book an appointment with Karen"
 {
   "state": "collecting_data",
-  "action": "create_invoice",
-  "data": {"client_name": "John"},
-  "missing_fields": ["client_email", "client_address", "line_items", "tax_rate", "notes"],
-  "next_question": "What's John's email address?",
-  "spoken_response": "I'll create an invoice for John. What's his email address?",
+  "action": "create_appointment",
+  "data": {"client_name": "Karen"},
+  "missing_fields": ["title", "date", "time", "address", "duration_minutes", "notes"],
+  "next_question": "What type of appointment? For example: service visit, consultation, or repair.",
+  "spoken_response": "I'll book an appointment with Karen. What type of appointment is this?",
   "ready_to_save": false
 }
 
-User: "john@email.com"
+User: "Service visit"
 {
   "state": "collecting_data",
-  "action": "create_invoice",
-  "data": {"client_name": "John", "client_email": "john@email.com"},
-  "missing_fields": ["client_address", "line_items", "tax_rate", "notes"],
-  "next_question": "What's the billing address?",
-  "spoken_response": "Got it. What's the billing address for this invoice?",
+  "action": "create_appointment",
+  "data": {"client_name": "Karen", "title": "Service visit"},
+  "missing_fields": ["date", "time", "address", "duration_minutes", "notes"],
+  "next_question": "What date?",
+  "spoken_response": "Service visit with Karen. What date should I schedule this for?",
+  "ready_to_save": false
+}
+
+User: "January 6th"
+{
+  "state": "collecting_data",
+  "action": "create_appointment",
+  "data": {"client_name": "Karen", "title": "Service visit", "date": "2025-01-06"},
+  "missing_fields": ["time", "address", "duration_minutes", "notes"],
+  "next_question": "What time?",
+  "spoken_response": "January 6th. What time?",
+  "ready_to_save": false
+}
+
+User: "2 PM"
+{
+  "state": "collecting_data",
+  "action": "create_appointment",
+  "data": {"client_name": "Karen", "title": "Service visit", "date": "2025-01-06", "time": "14:00"},
+  "missing_fields": ["address", "duration_minutes", "notes"],
+  "next_question": "What's the address?",
+  "spoken_response": "2 PM. What's the address?",
   "ready_to_save": false
 }
 
 User: "123 Main Street"
 {
   "state": "collecting_data",
-  "action": "create_invoice",
-  "data": {"client_name": "John", "client_email": "john@email.com", "client_address": "123 Main Street"},
-  "missing_fields": ["line_items", "tax_rate", "notes"],
-  "next_question": "What should I include on the invoice?",
-  "spoken_response": "123 Main Street. Now, what services or items should I include? Tell me the description, quantity, unit, and price for the first item.",
+  "action": "create_appointment",
+  "data": {"client_name": "Karen", "title": "Service visit", "date": "2025-01-06", "time": "14:00", "address": "123 Main Street"},
+  "missing_fields": ["duration_minutes", "notes"],
+  "next_question": "How long should this appointment be? Default is 60 minutes.",
+  "spoken_response": "123 Main Street. How long should I schedule this for? I can use 60 minutes as default.",
   "ready_to_save": false
 }
 
-User: "Plumbing repair, 3 hours at 80 dollars per hour"
+User: "One hour" or "60 minutes" or "default"
 {
   "state": "collecting_data",
-  "action": "create_invoice",
-  "data": {
-    "client_name": "John",
-    "client_email": "john@email.com",
-    "client_address": "123 Main Street",
-    "line_items": [
-      {
-        "description": "Plumbing repair",
-        "quantity": 3,
-        "unit": "hours",
-        "unit_price": 80,
-        "amount": 240
-      }
-    ]
-  },
-  "missing_fields": ["tax_rate", "notes"],
-  "next_question": "Any more items?",
-  "spoken_response": "Added plumbing repair, 3 hours at $80 per hour, total $240. Any more items to add?",
-  "ready_to_save": false
-}
-
-User: "No that's all"
-{
-  "state": "collecting_data",
-  "action": "create_invoice",
-  "data": {
-    "client_name": "John",
-    "client_email": "john@email.com",
-    "client_address": "123 Main Street",
-    "line_items": [
-      {
-        "description": "Plumbing repair",
-        "quantity": 3,
-        "unit": "hours",
-        "unit_price": 80,
-        "amount": 240
-      }
-    ],
-    "subtotal": 240
-  },
-  "missing_fields": ["tax_rate", "notes"],
-  "next_question": "What tax rate?",
-  "spoken_response": "Got it. What tax rate should I apply? Say zero if no tax.",
-  "ready_to_save": false
-}
-
-User: "8 percent"
-{
-  "state": "collecting_data",
-  "action": "create_invoice",
-  "data": {
-    "client_name": "John",
-    "client_email": "john@email.com",
-    "client_address": "123 Main Street",
-    "line_items": [
-      {
-        "description": "Plumbing repair",
-        "quantity": 3,
-        "unit": "hours",
-        "unit_price": 80,
-        "amount": 240
-      }
-    ],
-    "subtotal": 240,
-    "tax_rate": 8,
-    "tax_amount": 19.2,
-    "total": 259.2,
-    "issue_date": "2025-01-13",
-    "due_date": "2025-02-12"
-  },
+  "action": "create_appointment",
+  "data": {"client_name": "Karen", "title": "Service visit", "date": "2025-01-06", "time": "14:00", "address": "123 Main Street", "duration_minutes": 60},
   "missing_fields": ["notes"],
-  "next_question": "Any payment terms or notes?",
-  "spoken_response": "8% tax added. Any special payment terms or notes for this invoice? You can say none.",
+  "next_question": "Any special notes or requirements?",
+  "spoken_response": "60 minutes. Any special notes for this appointment? You can say none if there aren't any.",
   "ready_to_save": false
 }
 
-User: "Net 30 days"
+User: "Bring pipe wrench" or "None" or "No"
 {
-  "state": "reading_back",
-  "action": "create_invoice",
-  "data": {
-    "client_name": "John",
-    "client_email": "john@email.com",
-    "client_address": "123 Main Street",
-    "line_items": [
-      {
-        "description": "Plumbing repair",
-        "quantity": 3,
-        "unit": "hours",
-        "unit_price": 80,
-        "amount": 240
-      }
-    ],
-    "subtotal": 240,
-    "tax_rate": 8,
-    "tax_amount": 19.2,
-    "total": 259.2,
-    "issue_date": "2025-01-13",
-    "due_date": "2025-02-12",
-    "notes": "Net 30 days",
-    "status": "draft"
-  },
+  "state": "confirming",
+  "action": "create_appointment",
+  "data": {"client_name": "Karen", "title": "Service visit", "date": "2025-01-06", "time": "14:00", "address": "123 Main Street", "duration_minutes": 60, "notes": "Bring pipe wrench", "status": "scheduled"},
   "missing_fields": [],
   "next_question": null,
-  "spoken_response": "Let me read back your invoice. Client: John at john@email.com, 123 Main Street. Line items: Plumbing repair, 3 hours at $80 per hour equals $240. Subtotal: $240. Tax at 8%: $19.20. Total due: $259.20. Issue date: January 13th. Due date: February 12th. Payment terms: Net 30 days. Status: Draft. Does everything look correct?",
-  "ready_to_save": false
+  "spoken_response": "Let me confirm: Service visit with Karen on January 6th at 2 PM at 123 Main Street for 60 minutes. Notes: Bring pipe wrench. Should I save this appointment?",
+  "ready_to_save": true
 }
 
-User: "Yes save it"
+User: "Yes" or "Save it"
 {
   "state": "complete",
-  "action": "create_invoice",
+  "action": "create_appointment",
   "data": {same as above},
   "missing_fields": [],
   "next_question": null,
-  "spoken_response": "Perfect! Your invoice has been created and saved.",
+  "spoken_response": "Perfect! Your appointment with Karen has been scheduled.",
   "ready_to_save": true
 }
+
+EXAMPLE - Adding Income:
+
+User: "Record income of $500"
+{
+  "state": "collecting_data",
+  "action": "add_income",
+  "data": {"amount": 500},
+  "missing_fields": ["date", "source", "category", "payment_method", "notes"],
+  "next_question": "What date was this income received?",
+  "spoken_response": "I'll record $500 income. What date was this received?",
+  "ready_to_save": false
+}
+
+User: "Today"
+{
+  "state": "collecting_data",
+  "action": "add_income",
+  "data": {"amount": 500, "date": "2025-12-29"},
+  "missing_fields": ["source", "category", "payment_method", "notes"],
+  "next_question": "Who paid you or what was the source?",
+  "spoken_response": "Today. Who paid you or what was the source of this income?",
+  "ready_to_save": false
+}
+
+Continue asking for: category, payment_method, notes, then confirm and save.
 
 IMPORTANT NOTES:
 - Parse natural dates: "today", "tomorrow", "January 6th", "next Friday"
 - Parse natural times: "2pm", "2 o'clock", "fourteen hundred"
 - Parse natural amounts: "fifty dollars" = 50, "five hundred" = 500
-- For line items, extract: description, quantity, unit, unit_price from natural language
-- Calculate amount = quantity * unit_price automatically
-- Calculate subtotal = sum of all amounts
-- Calculate tax_amount = subtotal * (tax_rate / 100)
-- Calculate total = subtotal + tax_amount
-- For yes/no fields, accept: "yes", "yeah", "yep", "no", "nope"
+- For yes/no fields like is_tax_deductible, accept: "yes", "yeah", "yep", "no", "nope"
 - If user says "skip" or "none" for optional field, use empty string or default
 - Always use ISO date format YYYY-MM-DD in the data object
 - Always use 24-hour time HH:MM in the data object
-- For invoices and contracts, ALWAYS read back complete details before saving
 
 Today's date is ${new Date().toISOString().split('T')[0]}.`;
 
