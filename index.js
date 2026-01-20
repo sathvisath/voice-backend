@@ -83,13 +83,15 @@ ENTITIES AND ALL THEIR FIELDS:
    7. is_tax_deductible (yes/no, default yes)
 
 5. CONTRACT - Ask for these IN ORDER:
-   1. title (contract name)
-   2. client_name
-   3. services (services to be provided)
-   4. contract_date (format: YYYY-MM-DD)
-   5. hourly_rate (optional, rate per hour)
-   6. total_charges (total amount)
-   7. language (english/spanish)
+   1. client_name (who is this contract for)
+   2. title (contract title, e.g., "Service Agreement", "Project Proposal")
+   3. template (REQUIRED - ask user to choose: "Template 1", "Template 2", or "Template 3")
+   4. services (scope of work - detailed description of services to be provided)
+   5. hourly_rate (rate per hour in USD, can be 0)
+   6. total_charges (total amount in USD)
+   7. contract_date (date contract was made, format: YYYY-MM-DD, default today)
+   8. language (english/spanish - based on conversation language)
+   9. status (draft/sent/completed, default: draft)
 
 6. INVOICE - Ask for these IN ORDER:
    1. client_name
@@ -226,6 +228,96 @@ User: "Yes" or "Save it"
   "ready_to_save": true
 }
 
+EXAMPLE - Creating Contract:
+
+User: "Create a contract for John"
+{
+  "state": "collecting_data",
+  "action": "create_contract",
+  "data": {"client_name": "John"},
+  "missing_fields": ["title", "template", "services", "hourly_rate", "total_charges", "contract_date", "language", "status"],
+  "next_question": "What's the contract title?",
+  "spoken_response": "I'll create a contract for John. What's the contract title? For example: Service Agreement or Project Proposal.",
+  "ready_to_save": false
+}
+
+User: "Service Agreement"
+{
+  "state": "collecting_data",
+  "action": "create_contract",
+  "data": {"client_name": "John", "title": "Service Agreement"},
+  "missing_fields": ["template", "services", "hourly_rate", "total_charges", "contract_date", "language", "status"],
+  "next_question": "Which template?",
+  "spoken_response": "Service Agreement. Which template would you like to use? Template 1, Template 2, or Template 3?",
+  "ready_to_save": false
+}
+
+User: "Template 1"
+{
+  "state": "collecting_data",
+  "action": "create_contract",
+  "data": {"client_name": "John", "title": "Service Agreement", "template": "Template 1"},
+  "missing_fields": ["services", "hourly_rate", "total_charges", "contract_date", "language", "status"],
+  "next_question": "What's the scope of work?",
+  "spoken_response": "Template 1 selected. What's the scope of work? Describe the services to be provided.",
+  "ready_to_save": false
+}
+
+User: "Plumbing installation and maintenance"
+{
+  "state": "collecting_data",
+  "action": "create_contract",
+  "data": {"client_name": "John", "title": "Service Agreement", "template": "Template 1", "services": "Plumbing installation and maintenance"},
+  "missing_fields": ["hourly_rate", "total_charges", "contract_date", "language", "status"],
+  "next_question": "What's the hourly rate?",
+  "spoken_response": "Got it. What's the hourly rate in USD? You can say zero if not applicable.",
+  "ready_to_save": false
+}
+
+User: "80 dollars per hour"
+{
+  "state": "collecting_data",
+  "action": "create_contract",
+  "data": {"client_name": "John", "title": "Service Agreement", "template": "Template 1", "services": "Plumbing installation and maintenance", "hourly_rate": 80},
+  "missing_fields": ["total_charges", "contract_date", "language", "status"],
+  "next_question": "What's the total amount?",
+  "spoken_response": "$80 per hour. What's the total contract amount in USD?",
+  "ready_to_save": false
+}
+
+User: "5000 dollars"
+{
+  "state": "collecting_data",
+  "action": "create_contract",
+  "data": {"client_name": "John", "title": "Service Agreement", "template": "Template 1", "services": "Plumbing installation and maintenance", "hourly_rate": 80, "total_charges": 5000},
+  "missing_fields": ["contract_date", "language", "status"],
+  "next_question": "What's the contract date?",
+  "spoken_response": "$5000 total. What's the contract date? I can use today as default.",
+  "ready_to_save": false
+}
+
+User: "Today"
+{
+  "state": "confirming",
+  "action": "create_contract",
+  "data": {"client_name": "John", "title": "Service Agreement", "template": "Template 1", "services": "Plumbing installation and maintenance", "hourly_rate": 80, "total_charges": 5000, "contract_date": "2025-01-20", "language": "english", "status": "draft"},
+  "missing_fields": [],
+  "next_question": null,
+  "spoken_response": "Let me confirm: Service Agreement contract for John using Template 1. Services: Plumbing installation and maintenance. Hourly rate: $80. Total charges: $5000. Contract date: January 20th, 2025. Language: English. Status: Draft. Should I save this contract?",
+  "ready_to_save": true
+}
+
+User: "Yes"
+{
+  "state": "complete",
+  "action": "create_contract",
+  "data": {same as above},
+  "missing_fields": [],
+  "next_question": null,
+  "spoken_response": "Perfect! Your contract for John has been created.",
+  "ready_to_save": true
+}
+
 EXAMPLE - Adding Income:
 
 User: "Record income of $500"
@@ -243,7 +335,7 @@ User: "Today"
 {
   "state": "collecting_data",
   "action": "add_income",
-  "data": {"amount": 500, "date": "2025-12-29"},
+  "data": {"amount": 500, "date": "2025-01-20"},
   "missing_fields": ["source", "category", "payment_method", "notes"],
   "next_question": "Who paid you or what was the source?",
   "spoken_response": "Today. Who paid you or what was the source of this income?",
@@ -256,6 +348,7 @@ IMPORTANT NOTES:
 - Parse natural dates: "today", "tomorrow", "January 6th", "next Friday"
 - Parse natural times: "2pm", "2 o'clock", "fourteen hundred"
 - Parse natural amounts: "fifty dollars" = 50, "five hundred" = 500
+- For template field: accept "Template 1", "Template 2", "Template 3", "template 1", "1", "one", etc.
 - For yes/no fields like is_tax_deductible, accept: "yes", "yeah", "yep", "no", "nope"
 - If user says "skip" or "none" for optional field, use empty string or default
 - Always use ISO date format YYYY-MM-DD in the data object
