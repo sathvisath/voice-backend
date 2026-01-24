@@ -12,9 +12,9 @@ const anthropic = new Anthropic({
 });
 
 // REPLACE THESE WITH YOUR ACTUAL KEYS
-const DEEPGRAM_API_KEY = 098dc06c69e50494bf2af2031f1e3e681591b65f;
-const ELEVENLABS_API_KEY = sk_aa1236df45c22763640971579a026ef712b0c2c18e97888d;
-const ELEVENLABS_AGENT_ID = agent_5501kfrhjk0qe60tg5x15qz8xy89;
+const DEEPGRAM_API_KEY = "098dc06c69e50494bf2af2031f1e3e681591b65f";
+const ELEVENLABS_API_KEY = "sk_aa1236df45c22763640971579a026ef712b0c2c18e97888d";
+const ELEVENLABS_AGENT_ID = "agent_5501kfrhjk0qe60tg5x15qz8xy89";
 
 const SYSTEM_PROMPT = `You are a bilingual conversational voice assistant for a solo business management app used by plumbers, electricians, cleaners, contractors, and service professionals.
 
@@ -320,3 +320,4 @@ COMPONENT STRUCTURE:
    - Stop all audio
 
 Build this component with proper WebRTC audio capture that works on iOS Safari.
+
