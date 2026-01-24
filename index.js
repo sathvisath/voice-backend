@@ -178,7 +178,7 @@ app.post("/tts", async (req, res) => {
       headers: {
         "Accept": "audio/mpeg",
         "Content-Type": "application/json",
-        "xi-api-key": ELEVENLABS_API_KEY
+        "xi-api-key": sk_aa1236df45c22763640971579a026ef712b0c2c18e97888d
       },
       body: JSON.stringify({
         text: text,
@@ -232,92 +232,6 @@ app.listen(PORT, () => {
   console.log(`🎤 Voice backend running on port ${PORT}`);
   console.log(`🔊 TTS endpoint: /tts`);
 });
-```
 
-**⚠️ REPLACE THESE 3 VALUES:**
-- Line 13: `YOUR_DEEPGRAM_API_KEY_HERE`
-- Line 14: `YOUR_ELEVENLABS_API_KEY_HERE`
-- Line 15: `YOUR_ELEVENLABS_AGENT_ID_HERE`
 
----
-
-## **PART 2: FRONTEND PROMPT FOR BASE44**
-
-Give this prompt to base44:
-```
-Update VoiceAssistantWidget to use Deepgram + ElevenLabs for iOS-compatible voice.
-
-INSTALL PACKAGES FIRST:
-npm install @deepgram/sdk
-
-COMPONENT STRUCTURE:
-
-1. Import:
-   - import { createClient, LiveTranscriptionEvents } from '@deepgram/sdk'
-   - Keep existing lucide-react icons
-   - Keep base44Client
-
-2. Configuration (add at top of component):
-   const DEEPGRAM_API_KEY = "YOUR_DEEPGRAM_API_KEY_HERE";
-   const BACKEND_URL = "https://voice-backend-fwj6.onrender.com";
-
-3. State:
-   - isOpen: boolean
-   - isListening: boolean  
-   - isProcessing: boolean
-   - isSpeaking: boolean
-   - conversationHistory: array
-   - sessionId: string
-   - selectedLanguage: string | null
-   - mediaRecorder: MediaRecorder | null
-   - deepgramSocket: WebSocket | null
-
-4. Audio Capture with MediaRecorder (works on iOS Safari):
-
-   startListening function:
-   - Request microphone: navigator.mediaDevices.getUserMedia({ audio: true })
-   - Create MediaRecorder with audio stream
-   - Connect to Deepgram WebSocket: wss://api.deepgram.com/v1/listen
-   - Send audio chunks to Deepgram in real-time
-   - On transcript received: send to backend, get response
-   - Get audio from /tts endpoint
-   - Play audio response
-   - Stop listening after response completes
-
-5. Deepgram WebSocket Setup:
-   - URL: wss://api.deepgram.com/v1/listen?model=nova-2&language=en
-   - Headers: Authorization: Token DEEPGRAM_API_KEY
-   - Send audio as binary chunks
-   - Listen for transcript events
-   - Handle final transcripts only (ignore interim)
-
-6. TTS Playback:
-   - Fetch from: BACKEND_URL/tts
-   - Body: { text: responseText }
-   - Response is audio/mpeg
-   - Create Audio element and play
-   - Set isSpeaking true while playing
-   - Set isSpeaking false when done
-
-7. UI (keep existing design):
-   - Floating mic button (blue gradient, bottom-right)
-   - Modal with conversation history
-   - User messages: blue bubbles, right-aligned
-   - Assistant messages: white bubbles, left-aligned
-   - Status indicators: listening (green), processing (yellow), speaking (purple)
-   - Start/stop button for voice
-   - Clear conversation button
-
-8. Error Handling:
-   - Check microphone permissions
-   - Handle Deepgram connection errors
-   - Handle TTS errors
-   - Show error toasts
-
-9. Cleanup on unmount:
-   - Close Deepgram WebSocket
-   - Stop MediaRecorder
-   - Stop all audio
-
-Build this component with proper WebRTC audio capture that works on iOS Safari.
 
